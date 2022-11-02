@@ -16,9 +16,10 @@ local InApartmentTargets = {}
 
 -- polyzone variables
 local IsInsideStashZone = false
+local IsInsideExitPos= false
 local IsInsideOutfitsZone = false
 local IsInsideLogoutZone = false
-
+local IsInsideEntPos = false
 
 -- polyzone integration
 
@@ -81,8 +82,11 @@ local function RegisterApartmentEntranceZone(apartmentID, apartmentData)
 
     zone:onPlayerInOut(function (isPointInside)
         if isPointInside and not InApartment then
-            ShowEntranceHeaderMenu()
+            lib.showTextUI("[E] Use Apartment", {position = "left-center"})
+            IsInsideEntPos = true
         else
+            IsInsideEntPos = false
+            lib.hideTextUI()
             CloseMenuFull()
         end
     end)
@@ -115,16 +119,16 @@ local function RegisterInApartmentZone(targetKey, coords, heading, text)
     zone:onPlayerInOut(function (isPointInside)
         if isPointInside and text then
             if targetKey == "entrancePos" then
-                ShowExitHeaderMenu()
+                lib.showTextUI("[E] Manage Apartment", {position = "left-center"})
             else
                 lib.showTextUI(text, {position = "left-center"})
             end
         else
-            if targetKey == "entrancePos" then
-                CloseMenuFull()
-            else
-                lib.hideTextUI()
-            end
+            lib.hideTextUI()
+        end
+
+        if targetKey == "entrancePos" then
+            IsInsideExitPos = isPointInside
         end
 
         if targetKey == "stashPos" then
@@ -168,11 +172,11 @@ local function SetInApartmentTargets()
     local entrancePos = vector3(Apartments.Locations[ClosestHouse].coords.enter.x - POIOffsets.exit.x, Apartments.Locations[ClosestHouse].coords.enter.y - POIOffsets.exit.y - 0.5, Apartments.Locations[ClosestHouse].coords.enter.z - CurrentOffset + POIOffsets.exit.z)
     local stashPos = vector3(Apartments.Locations[ClosestHouse].coords.enter.x - POIOffsets.stash.x, Apartments.Locations[ClosestHouse].coords.enter.y - POIOffsets.stash.y, Apartments.Locations[ClosestHouse].coords.enter.z - CurrentOffset + POIOffsets.stash.z)
     local outfitsPos = vector3(Apartments.Locations[ClosestHouse].coords.enter.x - POIOffsets.clothes.x, Apartments.Locations[ClosestHouse].coords.enter.y - POIOffsets.clothes.y, Apartments.Locations[ClosestHouse].coords.enter.z - CurrentOffset + POIOffsets.clothes.z)
-    local logoutPos = vector3(Apartments.Locations[ClosestHouse].coords.enter.x - POIOffsets.logout.x, Apartments.Locations[ClosestHouse].coords.enter.y + POIOffsets.logout.y, Apartments.Locations[ClosestHouse].coords.enter.z - CurrentOffset + POIOffsets.logout.z)
+    -- local logoutPos = vector3(Apartments.Locations[ClosestHouse].coords.enter.x - POIOffsets.logout.x, Apartments.Locations[ClosestHouse].coords.enter.y + POIOffsets.logout.y, Apartments.Locations[ClosestHouse].coords.enter.z - CurrentOffset + POIOffsets.logout.z)
 
     RegisterInApartmentZone('stashPos', stashPos, 0, "[E] " .. Lang:t('text.open_stash'))
     RegisterInApartmentZone('outfitsPos', outfitsPos, 0, "[E] " .. Lang:t('text.change_outfit'))
-    RegisterInApartmentZone('logoutPos', logoutPos, 0, "[E] " .. Lang:t('text.logout'))
+    -- RegisterInApartmentZone('logoutPos', logoutPos, 0, "[E] " .. Lang:t('text.logout'))
     RegisterInApartmentZone('entrancePos', entrancePos, 0, Lang:t('text.options'))
 end
 
@@ -192,6 +196,7 @@ local function DeleteInApartmentTargets()
     IsInsideStashZone = false
     IsInsideOutfitsZone = false
     IsInsideLogoutZone = false
+    IsInsideExitPos = false
 
     if InApartmentTargets and next(InApartmentTargets) then
         for _, apartmentTarget in pairs(InApartmentTargets) do
@@ -532,9 +537,18 @@ CreateThread(function ()
     while true do
         sleep = 1000
 
-        if not InApartment then
+        if IsInsideEntPos then
+            sleep = 0
+            if IsControlJustPressed(0, 38) then
+                print("pressed")
+                ShowEntranceHeaderMenu()
+            end
+        end
+
+        if not InApartment and not IsInsideEntPos then
             SetClosestApartment()
             SetApartmentsEntranceTargets()
+            sleep = 1000
         elseif InApartment then
             sleep = 0
 
@@ -543,21 +557,25 @@ CreateThread(function ()
             if IsInsideStashZone then
                 if IsControlJustPressed(0, 38) then
                     TriggerEvent('apartments:client:OpenStash')
-                    exports['qb-core']:HideText()
                 end
             end
+
+            if IsInsideExitPos then
+                if IsControlJustPressed(0, 38) then
+                    ShowExitHeaderMenu()
+                end
+            end
+
 
             if IsInsideOutfitsZone then
                 if IsControlJustPressed(0, 38) then
                     TriggerEvent('apartments:client:ChangeOutfit')
-                    exports['qb-core']:HideText()
                 end
             end
 
             if IsInsideLogoutZone then
                 if IsControlJustPressed(0, 38) then
                     TriggerEvent('apartments:client:Logout')
-                    exports['qb-core']:HideText()
                 end
             end
         end
