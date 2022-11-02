@@ -1,5 +1,6 @@
 local ApartmentObjects = {}
 local QBCore = exports['qb-core']:GetCoreObject()
+local ox_inventory = exports.ox_inventory
 
 -- Functions
 
@@ -27,6 +28,10 @@ local function GetApartmentInfo(apartmentId)
 end
 
 -- Events
+
+RegisterNetEvent('apartments:server:loadstash', function(CurrentApartment)
+    ox_inventory:RegisterStash(CurrentApartment, CurrentApartment, 15, 30000, false)
+end)
 
 RegisterNetEvent('qb-apartments:server:SetInsideMeta', function(house, insideId, bool, isVisiting)
     local src = source

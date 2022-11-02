@@ -1,4 +1,5 @@
 local QBCore = exports['qb-core']:GetCoreObject()
+local ox_inventory = exports.ox_inventory
 
 local InApartment = false
 local ClosestHouse = nil
@@ -116,13 +117,13 @@ local function RegisterInApartmentZone(targetKey, coords, heading, text)
             if targetKey == "entrancePos" then
                 ShowExitHeaderMenu()
             else
-                exports['qb-core']:DrawText(text, 'left')
+                lib.showTextUI(text, {position = "left-center"})
             end
         else
             if targetKey == "entrancePos" then
                 CloseMenuFull()
             else
-                exports['qb-core']:HideText()
+                lib.hideTextUI()
             end
         end
 
@@ -501,9 +502,11 @@ end)
 
 RegisterNetEvent('apartments:client:OpenStash', function()
     if CurrentApartment ~= nil then
-        TriggerServerEvent("inventory:server:OpenInventory", "stash", CurrentApartment)
+        if ox_inventory:openInventory('stash', CurrentApartment) == false then
+            TriggerServerEvent('apartments:server:loadstash', CurrentApartment)
+            ox_inventory:openInventory('stash', CurrentApartment)
+        end
         TriggerServerEvent("InteractSound_SV:PlayOnSource", "StashOpen", 0.4)
-        TriggerEvent("inventory:client:SetCurrentStash", CurrentApartment)
     end
 end)
 
